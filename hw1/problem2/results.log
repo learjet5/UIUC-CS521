@@ -1,0 +1,57 @@
+(hw1-env) ➜  /home/ubuntu/CS521/hw1 python3 ./my_pgd.py                                        
+Test dataset size: 10000                       
+no input normalization                         
+Model: models/pretr_Linf.pth                   
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [45:58<00:00, 17.57s/it]
+Robust accuracy 0.51210 on pgd_linf attack with eps = 0.03137254901960784                                                                                                                      
+
+Model: models/pretr_L2.pth                     
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [48:22<00:00, 18.49s/it]
+Robust accuracy 0.30850 on pgd_linf attack with eps = 0.03137254901960784                                                                                                                      
+
+Model: models/pretr_RAMP.pth                   
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [29:45<00:00, 11.37s/it]
+Robust accuracy 0.49770 on pgd_linf attack with eps = 0.03137254901960784                                                                                                                      
+
+
+Model: models/pretr_Linf.pth                   
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [26:20<00:00, 10.07s/it]
+Robust accuracy 0.48830 on pgd_l2 attack with eps = 0.75                                       
+
+Model: models/pretr_L2.pth                     
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [41:11<00:00, 15.74s/it]
+Robust accuracy 0.54380 on pgd_l2 attack with eps = 0.75                                       
+
+Model: models/pretr_RAMP.pth                   
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [32:35<00:00, 12.46s/it]
+Robust accuracy 0.59650 on pgd_l2 attack with eps = 0.75                                       
+
+
+
+
+Model: models/pretr_Linf.pth                   
+Evaluating: 100%|████████████████████████████████████████████████████████████████████████████████████████| 157/157 [1:30:11<00:00, 34.47s/it]
+Robust accuracy 0.47050 on multi attacks                                                       
+
+Model: models/pretr_L2.pth                     
+Evaluating: 100%|████████████████████████████████████████████████████████████████████████████████████████| 157/157 [1:20:00<00:00, 30.57s/it]
+Robust accuracy 0.30850 on multi attacks                                                       
+
+Model: models/pretr_RAMP.pth                   
+Evaluating: 100%|████████████████████████████████████████████████████████████████████████████████████████| 157/157 [1:03:00<00:00, 24.08s/it]
+Robust accuracy 0.49760 on multi attacks                                                       
+
+
+
+
+Model: models/pretr_Linf.pth                   
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [00:58<00:00,  2.69it/s]
+Standard accuracy 0.82800                      
+
+Model: models/pretr_L2.pth                     
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [00:58<00:00,  2.68it/s]
+Standard accuracy 0.88750                      
+
+Model: models/pretr_RAMP.pth                   
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████| 157/157 [01:00<00:00,  2.60it/s]
+Standard accuracy 0.81190
