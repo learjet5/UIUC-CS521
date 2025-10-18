@@ -1,0 +1,98 @@
+(cs521) ubuntu@ip-172-31-32-158:~/LHY/cs521_hw3/problem1$ python3 adversarial_training.py 
+no input normalization
+no input normalization
+
+Adversarial training with Linf PGD, eps = 0.00784313725490196, step = 0.00392156862745098
+Epoch 1/20 | lr: 0.050000 | loss: 1.6937 | acc: 36.66% | time: 54.5s                                                                     
+Epoch 2/20 | lr: 0.049692 | loss: 1.3912 | acc: 48.61% | time: 54.6s                                                                     
+Epoch 3/20 | lr: 0.048776 | loss: 1.2275 | acc: 54.82% | time: 55.1s                                                                     
+Epoch 4/20 | lr: 0.047275 | loss: 1.1255 | acc: 58.67% | time: 55.0s                                                                     
+Epoch 5/20 | lr: 0.045225 | loss: 1.0576 | acc: 61.27% | time: 55.2s                                                                     
+Epoch 6/20 | lr: 0.042678 | loss: 0.9945 | acc: 63.96% | time: 55.3s                                                                     
+Epoch 7/20 | lr: 0.039695 | loss: 0.9573 | acc: 65.27% | time: 55.5s                                                                     
+Epoch 8/20 | lr: 0.036350 | loss: 0.9136 | acc: 67.12% | time: 55.5s                                                                     
+Epoch 9/20 | lr: 0.032725 | loss: 0.8801 | acc: 68.38% | time: 55.5s                                                                     
+Epoch 10/20 | lr: 0.028911 | loss: 0.8380 | acc: 69.83% | time: 55.5s                                                                    
+Epoch 11/20 | lr: 0.025000 | loss: 0.8095 | acc: 71.07% | time: 55.5s                                                                    
+Epoch 12/20 | lr: 0.021089 | loss: 0.7800 | acc: 71.79% | time: 55.5s                                                                    
+Epoch 13/20 | lr: 0.017275 | loss: 0.7357 | acc: 73.61% | time: 55.6s                                                                    
+Epoch 14/20 | lr: 0.013650 | loss: 0.7064 | acc: 74.44% | time: 55.6s                                                                    
+Epoch 15/20 | lr: 0.010305 | loss: 0.6670 | acc: 75.68% | time: 55.5s                                                                    
+Epoch 16/20 | lr: 0.007322 | loss: 0.6336 | acc: 76.94% | time: 55.5s                                                                    
+Epoch 17/20 | lr: 0.004775 | loss: 0.5974 | acc: 78.51% | time: 55.5s                                                                    
+Epoch 18/20 | lr: 0.002725 | loss: 0.5629 | acc: 79.59% | time: 55.5s                                                                    
+Epoch 19/20 | lr: 0.001224 | loss: 0.5342 | acc: 80.59% | time: 55.5s                                                                    
+Epoch 20/20 | lr: 0.000308 | loss: 0.5154 | acc: 81.33% | time: 55.6s                                                                    
+Saved adversarially trained model to models/adv_trained_linf_0.00784313725490196.pth
+no input normalization
+
+Adversarial training with Linf PGD, eps = 0.01568627450980392, step = 0.00392156862745098
+Epoch 1/20 | lr: 0.050000 | loss: 1.8527 | acc: 30.59% | time: 55.1s                                                                     
+Epoch 2/20 | lr: 0.049692 | loss: 1.6372 | acc: 38.45% | time: 55.1s                                                                     
+Epoch 3/20 | lr: 0.048776 | loss: 1.5105 | acc: 43.55% | time: 55.0s                                                                     
+Epoch 4/20 | lr: 0.047275 | loss: 1.4242 | acc: 46.85% | time: 55.0s                                                                     
+Epoch 5/20 | lr: 0.045225 | loss: 1.3486 | acc: 49.57% | time: 55.0s                                                                     
+Epoch 6/20 | lr: 0.042678 | loss: 1.3017 | acc: 51.67% | time: 55.1s                                                                     
+Epoch 7/20 | lr: 0.039695 | loss: 1.2543 | acc: 53.33% | time: 55.1s                                                                     
+Epoch 8/20 | lr: 0.036350 | loss: 1.2114 | acc: 55.00% | time: 55.1s                                                                     
+Epoch 9/20 | lr: 0.032725 | loss: 1.1849 | acc: 56.02% | time: 55.1s                                                                     
+Epoch 10/20 | lr: 0.028911 | loss: 1.1444 | acc: 57.78% | time: 55.0s                                                                    
+Epoch 11/20 | lr: 0.025000 | loss: 1.1215 | acc: 58.26% | time: 55.0s                                                                    
+Epoch 12/20 | lr: 0.021089 | loss: 1.0878 | acc: 59.50% | time: 55.0s                                                                    
+Epoch 13/20 | lr: 0.017275 | loss: 1.0615 | acc: 60.47% | time: 55.0s                                                                    
+Epoch 14/20 | lr: 0.013650 | loss: 1.0272 | acc: 61.79% | time: 55.0s                                                                    
+Epoch 15/20 | lr: 0.010305 | loss: 0.9923 | acc: 63.26% | time: 55.0s                                                                    
+Epoch 16/20 | lr: 0.007322 | loss: 0.9568 | acc: 64.37% | time: 55.0s                                                                    
+Epoch 17/20 | lr: 0.004775 | loss: 0.9274 | acc: 65.29% | time: 54.9s                                                                    
+Epoch 18/20 | lr: 0.002725 | loss: 0.8961 | acc: 66.58% | time: 54.6s                                                                    
+Epoch 19/20 | lr: 0.001224 | loss: 0.8743 | acc: 67.21% | time: 54.3s                                                                    
+Epoch 20/20 | lr: 0.000308 | loss: 0.8533 | acc: 67.98% | time: 54.8s                                                                    
+Saved adversarially trained model to models/adv_trained_linf_0.01568627450980392.pth
+no input normalization
+
+Adversarial training with Linf PGD, eps = 0.03137254901960784, step = 0.00784313725490196
+Epoch 1/20 | lr: 0.050000 | loss: 2.1252 | acc: 21.68% | time: 54.7s                                                                     
+Epoch 2/20 | lr: 0.049692 | loss: 1.9540 | acc: 26.73% | time: 55.1s                                                                     
+Epoch 3/20 | lr: 0.048776 | loss: 1.8778 | acc: 29.58% | time: 55.7s                                                                     
+Epoch 4/20 | lr: 0.047275 | loss: 1.8208 | acc: 31.45% | time: 55.1s                                                                     
+Epoch 5/20 | lr: 0.045225 | loss: 1.7742 | acc: 33.37% | time: 55.3s                                                                     
+Epoch 6/20 | lr: 0.042678 | loss: 1.7392 | acc: 34.81% | time: 55.7s                                                                     
+Epoch 7/20 | lr: 0.039695 | loss: 1.7063 | acc: 36.18% | time: 55.8s                                                                     
+Epoch 8/20 | lr: 0.036350 | loss: 1.6771 | acc: 37.16% | time: 55.1s                                                                     
+Epoch 9/20 | lr: 0.032725 | loss: 1.6522 | acc: 38.09% | time: 55.1s                                                                     
+Epoch 10/20 | lr: 0.028911 | loss: 1.6217 | acc: 39.40% | time: 55.7s                                                                    
+Epoch 11/20 | lr: 0.025000 | loss: 1.5948 | acc: 40.50% | time: 55.6s                                                                    
+Epoch 12/20 | lr: 0.021089 | loss: 1.5708 | acc: 41.05% | time: 55.8s                                                                    
+Epoch 13/20 | lr: 0.017275 | loss: 1.5418 | acc: 42.33% | time: 55.8s                                                                    
+Epoch 14/20 | lr: 0.013650 | loss: 1.5205 | acc: 42.86% | time: 55.6s                                                                    
+Epoch 15/20 | lr: 0.010305 | loss: 1.4962 | acc: 43.84% | time: 55.7s                                                                    
+Epoch 16/20 | lr: 0.007322 | loss: 1.4780 | acc: 44.11% | time: 55.0s                                                                    
+Epoch 17/20 | lr: 0.004775 | loss: 1.4568 | acc: 45.07% | time: 55.2s                                                                    
+Epoch 18/20 | lr: 0.002725 | loss: 1.4379 | acc: 45.56% | time: 55.7s                                                                    
+Epoch 19/20 | lr: 0.001224 | loss: 1.4207 | acc: 46.02% | time: 55.7s                                                                    
+Epoch 20/20 | lr: 0.000308 | loss: 1.4094 | acc: 46.50% | time: 55.7s                                                                    
+Saved adversarially trained model to models/adv_trained_linf_0.03137254901960784.pth
+no input normalization
+
+Adversarial training with Linf PGD, eps = 0.047058823529411764, step = 0.011764705882352941
+Epoch 1/20 | lr: 0.050000 | loss: 2.2685 | acc: 16.43% | time: 55.5s                                                                     
+Epoch 2/20 | lr: 0.049692 | loss: 2.1245 | acc: 21.02% | time: 55.3s                                                                     
+Epoch 3/20 | lr: 0.048776 | loss: 2.0636 | acc: 23.21% | time: 55.3s                                                                     
+Epoch 4/20 | lr: 0.047275 | loss: 2.0228 | acc: 24.22% | time: 55.5s                                                                     
+Epoch 5/20 | lr: 0.045225 | loss: 1.9925 | acc: 25.41% | time: 55.3s                                                                     
+Epoch 6/20 | lr: 0.042678 | loss: 1.9647 | acc: 26.65% | time: 55.4s                                                                     
+Epoch 7/20 | lr: 0.039695 | loss: 1.9397 | acc: 27.40% | time: 55.5s                                                                     
+Epoch 8/20 | lr: 0.036350 | loss: 1.9185 | acc: 28.59% | time: 55.3s                                                                     
+Epoch 9/20 | lr: 0.032725 | loss: 1.9039 | acc: 28.80% | time: 55.4s                                                                     
+Epoch 10/20 | lr: 0.028911 | loss: 1.8888 | acc: 29.70% | time: 55.4s                                                                    
+Epoch 11/20 | lr: 0.025000 | loss: 1.8684 | acc: 30.03% | time: 54.8s                                                                    
+Epoch 12/20 | lr: 0.021089 | loss: 1.8513 | acc: 30.90% | time: 54.7s                                                                    
+Epoch 13/20 | lr: 0.017275 | loss: 1.8385 | acc: 31.11% | time: 55.3s                                                                    
+Epoch 14/20 | lr: 0.013650 | loss: 1.8198 | acc: 31.98% | time: 361.9s                                                                   
+Epoch 15/20 | lr: 0.010305 | loss: 1.8056 | acc: 32.22% | time: 54.5s
+Epoch 16/20 | lr: 0.007322 | loss: 1.7908 | acc: 32.71% | time: 54.9s                                                            
+Epoch 17/20 | lr: 0.004775 | loss: 1.7761 | acc: 33.26% | time: 55.2s                                                            
+Epoch 18/20 | lr: 0.002725 | loss: 1.7635 | acc: 33.80% | time: 55.1s                                                            
+Epoch 19/20 | lr: 0.001224 | loss: 1.7537 | acc: 33.80% | time: 65.1s                                                            
+Epoch 20/20 | lr: 0.000308 | loss: 1.7463 | acc: 34.12% | time: 55.3s                                                            
+Saved adversarially trained model to models/adv_trained_linf_0.047058823529411764.pth

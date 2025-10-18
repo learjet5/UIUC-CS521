@@ -1,0 +1,385 @@
+# !pip install tensorboardX
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+import os
+
+from torchvision import datasets, transforms
+# from tensorboardX import SummaryWriter
+
+# 
+# Prepare dataset
+# 
+use_cuda = True
+device = torch.device("cuda" if use_cuda else "cpu")
+# batch_size = 64
+batch_size = 128 # Here I choose to use larger size since my gpu is L40S
+
+np.random.seed(42)
+torch.manual_seed(42)
+
+
+## Dataloaders
+train_dataset = datasets.CIFAR10('cifar10_data/', train=True, download=True, transform=transforms.Compose(
+    [transforms.ToTensor()]
+))
+test_dataset = datasets.CIFAR10('cifar10_data/', train=False, download=True, transform=transforms.Compose(
+    [transforms.ToTensor()]
+))
+
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+def tp_relu(x, delta=1.):
+    ind1 = (x < -1. * delta).float()
+    ind2 = (x > delta).float()
+    return .5 * (x + delta) * (1 - ind1) * (1 - ind2) + x * ind2
+
+def tp_smoothed_relu(x, delta=1.):
+    ind1 = (x < -1. * delta).float()
+    ind2 = (x > delta).float()
+    return (x + delta) ** 2 / (4 * delta) * (1 - ind1) * (1 - ind2) + x * ind2
+
+class Normalize(nn.Module):
+    def __init__(self, mu, std):
+        super(Normalize, self).__init__()
+        self.mu, self.std = mu, std
+
+    def forward(self, x):
+        return (x - self.mu) / self.std
+
+class IdentityLayer(nn.Module):
+    def forward(self, inputs):
+        return inputs
+    
+class PreActBlock(nn.Module):
+    '''Pre-activation version of the BasicBlock.'''
+    expansion = 1
+
+    def __init__(self, in_planes, planes, bn, learnable_bn, stride=1, activation='relu'):
+        super(PreActBlock, self).__init__()
+        self.collect_preact = True
+        self.activation = activation
+        self.avg_preacts = []
+        self.bn1 = nn.BatchNorm2d(in_planes, affine=learnable_bn) if bn else IdentityLayer()
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=not learnable_bn)
+        self.bn2 = nn.BatchNorm2d(planes, affine=learnable_bn) if bn else IdentityLayer()
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=not learnable_bn)
+
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=not learnable_bn)
+            )
+
+    def act_function(self, preact):
+        if self.activation == 'relu':
+            act = F.relu(preact)
+        elif self.activation[:6] == '3prelu':
+            act = tp_relu(preact, delta=float(self.activation.split('relu')[1]))
+        elif self.activation[:8] == '3psmooth':
+            act = tp_smoothed_relu(preact, delta=float(self.activation.split('smooth')[1]))
+        else:
+            assert self.activation[:8] == 'softplus'
+            beta = int(self.activation.split('softplus')[1])
+            act = F.softplus(preact, beta=beta)
+        return act
+
+    def forward(self, x):
+        out = self.act_function(self.bn1(x))
+        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x  # Important: using out instead of x
+        out = self.conv1(out)
+        out = self.conv2(self.act_function(self.bn2(out)))
+        out += shortcut
+        return out
+
+class PreActResNet(nn.Module):
+    def __init__(self, block, num_blocks, n_cls, cuda=True, half_prec=False,
+        activation='relu', fts_before_bn=False, normal='none'):
+        super(PreActResNet, self).__init__()
+        self.bn = True
+        self.learnable_bn = True  # doesn't matter if self.bn=False
+        self.in_planes = 64
+        self.avg_preact = None
+        self.activation = activation
+        self.fts_before_bn = fts_before_bn
+        if normal == 'cifar10':
+            self.mu = torch.tensor((0.4914, 0.4822, 0.4465)).view(1, 3, 1, 1)
+            self.std = torch.tensor((0.2471, 0.2435, 0.2616)).view(1, 3, 1, 1)
+        else:
+            self.mu = torch.tensor((0.0, 0.0, 0.0)).view(1, 3, 1, 1)
+            self.std = torch.tensor((1.0, 1.0, 1.0)).view(1, 3, 1, 1)
+            print('no input normalization')
+        if cuda:
+            self.mu = self.mu.cuda()
+            self.std = self.std.cuda()
+        if half_prec:
+            self.mu = self.mu.half()
+            self.std = self.std.half()
+
+        self.normalize = Normalize(self.mu, self.std)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=not self.learnable_bn)
+        self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+        self.bn = nn.BatchNorm2d(512 * block.expansion)
+        self.linear = nn.Linear(512*block.expansion, n_cls)
+
+    def _make_layer(self, block, planes, num_blocks, stride):
+        strides = [stride] + [1]*(num_blocks-1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, self.bn, self.learnable_bn, stride, self.activation))
+            # layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes * block.expansion
+        return nn.Sequential(*layers)
+
+    def forward(self, x, return_features=False):
+        for layer in [*self.layer1, *self.layer2, *self.layer3, *self.layer4]:
+            layer.avg_preacts = []
+
+        out = self.normalize(x)
+        out = self.conv1(out)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        if return_features and self.fts_before_bn:
+            return out.view(out.size(0), -1)
+        out = F.relu(self.bn(out))
+        if return_features:
+            return out.view(out.size(0), -1)
+        out = F.avg_pool2d(out, 4)
+        out = out.view(out.size(0), -1)
+        out = self.linear(out)
+
+        return out
+
+
+def PreActResNet18(n_cls, cuda=True, half_prec=False, activation='relu', fts_before_bn=False,
+    normal='none'):
+    #print('initializing PA RN-18 with act {}, normal {}'.format())
+    return PreActResNet(PreActBlock, [2, 2, 2, 2], n_cls=n_cls, cuda=cuda, half_prec=half_prec,
+        activation=activation, fts_before_bn=fts_before_bn, normal=normal)
+
+
+# intialize the model
+# model = PreActResNet18(10, cuda=True, activation='softplus1').to(device)
+# model.eval()
+
+# 
+# Record standard accuracy
+# 
+def test_model_trainset_accuracy(model):
+    model.eval()
+    tot_test, tot_acc = 0.0, 0.0
+    for batch_idx, (x_batch, y_batch) in tqdm(enumerate(train_loader), total=len(train_loader), desc="Evaluating"):
+        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+        
+        with torch.no_grad():
+            out = model(x_batch)
+            pred = torch.argmax(out, dim=1)
+            tot_acc += (pred == y_batch).sum().item()
+            tot_test += y_batch.size(0)
+    print('Train Set Standard accuracy %.5lf' % (tot_acc/tot_test))
+
+def test_model_standard_accuracy(model):
+    model.eval()
+    tot_test, tot_acc = 0.0, 0.0
+    for batch_idx, (x_batch, y_batch) in tqdm(enumerate(test_loader), total=len(test_loader), desc="Evaluating"):
+        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+        
+        with torch.no_grad():
+            out = model(x_batch)
+            pred = torch.argmax(out, dim=1)
+            tot_acc += (pred == y_batch).sum().item()
+            tot_test += y_batch.size(0)
+    print('Test Set Standard accuracy %.5lf' % (tot_acc/tot_test))
+
+# 
+# PGD Attack
+# 
+
+# Non-targeted attack requires the ground-truth label, which is also what the labels mean here.
+# Delta is the perturbation; it should be similar to what eta is in FGSM.
+# k: you can use K=10. Also, it would be fine to play with other values too
+def pgd_linf_untargeted(model, x, labels, k, eps, eps_step):
+    if eps == 0 or k == 0:
+        return x.clone().detach()
+    model.eval()
+    ce_loss = torch.nn.CrossEntropyLoss()
+    adv_x = x.clone().detach()
+    adv_x.requires_grad_(True) 
+    for _ in range(k):
+        adv_x.requires_grad_(True)
+        model.zero_grad()
+        output = model(adv_x)
+        # DONE: Calculate the loss
+        loss = ce_loss(output, labels)
+        loss.backward()
+        # DONE: compute the adv_x
+        # find delta, clamp with eps
+        with torch.no_grad():
+            # update adv_x
+            adv_x = adv_x + adv_x.grad.sign() * eps_step
+            # projection to the eps-size ball around the initial starting input.
+            delta = torch.clamp(adv_x - x, min=-eps, max=eps)
+            adv_x = torch.clamp(x + delta, 0.0, 1.0)
+        adv_x = adv_x.detach()
+    return adv_x
+
+# Added for HW3 problem1(b)
+def fgsm_untargeted(model, x, labels, eps):
+    model.eval()
+    ce_loss = nn.CrossEntropyLoss()
+    adv_x = x.clone().detach()
+    adv_x.requires_grad_(True)
+
+    model.zero_grad()
+    output = model(adv_x)
+    loss = ce_loss(output, labels)
+    loss.backward()
+
+    with torch.no_grad():
+        adv_x = adv_x + eps * adv_x.grad.sign()
+        adv_x = torch.clamp(adv_x, 0.0, 1.0)
+        adv_x = torch.clamp(adv_x, x - eps, x + eps)  # 约束在 L∞-球
+
+    return adv_x.detach()
+
+# 
+# Single-Norm Robust Accuracy Evaluation
+# Now we only consider L_infinite attack.
+# 
+def test_model_on_single_attack(model, attack='pgd_linf', eps=0.1):
+    model.eval()
+    tot_test, tot_acc = 0.0, 0.0
+    for batch_idx, (x_batch, y_batch) in tqdm(enumerate(test_loader), total=len(test_loader), desc="Evaluating"):
+        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+        if attack == 'pgd_linf':
+            # DONE: get x_adv untargeted pgd linf with eps, and eps_step=eps/4
+            x_adv = pgd_linf_untargeted(model, x_batch, y_batch, k=10, eps=eps, eps_step=eps/4.0)
+        elif attack == 'fgsm':
+            x_adv = fgsm_untargeted(model, x_batch, y_batch, eps=eps)
+        else:
+            x_adv = x_batch # no attack
+        
+        # get the testing accuracy and update tot_test and tot_acc
+        with torch.no_grad():
+            out = model(x_adv)
+            pred = torch.argmax(out, dim=1)
+            tot_acc += (pred == y_batch).sum().item()
+            tot_test += y_batch.size(0)
+    print('Robust accuracy %.5lf' % (tot_acc/tot_test), f'on {attack} attack with eps = {eps}')
+
+
+# 
+# TODO: Implement adversarial training with Linf PGD attack (for HW3).
+# 
+
+# According to RAMP paper, lr = 0.05 for the first 70 epochs, and 0.005 for the last 10 epochs.
+# lr, momentum, weight_decay: optimizer params
+def adversarial_training_linf(
+    model, train_loader, test_loader, device,
+    epochs=20, eps=8/255, eps_step=2/255, k=10,
+    lr=0.05, momentum=0.9, weight_decay=5e-4,
+    save_path='models/adv_trained_linf.pth'
+):
+    model.to(device)
+    ce_loss = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+
+    for epoch in range(1, epochs + 1):
+        model.train()
+        epoch_loss = 0.0
+        correct = 0
+        total = 0
+
+        t0 = time.time()
+        for x_batch, y_batch in tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}", leave=False, unit="batch"):
+            x_batch = x_batch.to(device, non_blocking=True)
+            y_batch = y_batch.to(device, non_blocking=True)
+
+            # --- generate adversarial examples (PGD uses model.eval() internally) ---
+            x_adv = pgd_linf_untargeted(model, x_batch, y_batch, k=k, eps=eps, eps_step=eps_step).detach()
+
+            # --- standard training step on adversarial examples ---
+            optimizer.zero_grad(set_to_none=True)
+            model.train()  # ensure BN/Dropout in train mode
+            outputs = model(x_adv)
+            loss = ce_loss(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+
+            bs = y_batch.size(0)
+            epoch_loss += loss.item() * bs
+            total += bs
+            with torch.no_grad():
+                preds = outputs.argmax(dim=1)
+                correct += (preds == y_batch).sum().item()
+
+        # epoch metrics
+        avg_loss = epoch_loss / max(1, total)
+        train_acc = 100.0 * correct / max(1, total)
+        cur_lr = optimizer.param_groups[0]['lr']  # lr used in this epoch
+
+        # TODO: evaluate robust accuracy during training. consider save the best model instead of just final model
+
+        t1 = time.time()
+        print(f"Epoch {epoch}/{epochs} | lr: {cur_lr:.6f} | loss: {avg_loss:.4f} | acc: {train_acc:.2f}% | time: {t1 - t0:.1f}s")
+
+        # step scheduler AFTER logging current lr
+        lr_scheduler.step()
+
+    # save checkpoint
+    if save_path:
+        try:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            torch.save(model.state_dict(), save_path)
+            print(f"Saved adversarially trained model to {save_path}")
+        except Exception as e:
+            print("Failed to save model:", e)
+
+
+
+if __name__ == '__main__':
+    # Train adversarially robust models with different epsilons
+    eps_options = [2/255, 4/255, 8/255, 12/255]
+
+    # Train model from scratch
+    for cur_eps in eps_options:
+        step = max(1/255, cur_eps/4.0) if cur_eps > 0 else 0.0
+        model = PreActResNet18(10, cuda=True, activation='softplus1').to(device) # init a new base model each time
+        model_name = f'models/adv_trained_linf_{str(cur_eps)}.pth'
+        print(f"\nAdversarial training with Linf PGD, eps = {cur_eps}, step = {step}")
+        if not os.path.exists(model_name):
+            adversarial_training_linf(model, train_loader, test_loader, device,
+                              epochs=20, eps=cur_eps, eps_step=step, k=10,
+                              save_path=model_name)
+        else:
+            print(f"Model {model_name} already exists, skipping training.")
+        
+    # Train model from pretrained standard model.
+    for cur_eps in eps_options:
+        step = max(1/255, cur_eps/4.0) if cur_eps > 0 else 0.0
+        assert os.path.exists("models/clean_trained.pth"), "Pretrained clean model not found!"
+        ckpt = torch.load("models/clean_trained.pth", map_location=device)
+        model = PreActResNet18(10, cuda=True, activation='softplus1').to(device) # init a new base model before loading parameters
+        model.load_state_dict(ckpt["model_state"])
+        model_name = f'models/adv_finetuned_linf_{str(cur_eps)}.pth'
+        print(f"\nAdversarial training with Linf PGD, eps = {cur_eps}, step = {step}")
+        if not os.path.exists(model_name):
+            adversarial_training_linf(model, train_loader, test_loader, device,
+                              epochs=20, eps=cur_eps, eps_step=step, k=10,
+                              save_path=model_name)
+        else:
+            print(f"Model {model_name} already exists, skipping training.")
+
+        

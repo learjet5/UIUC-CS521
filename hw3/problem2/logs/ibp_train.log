@@ -1,0 +1,27 @@
+(cs521) ➜  problem2 python3 ./ibp_train.py 
+Epoch 001 | nat_acc=0.9347 nat_loss=0.2135                                                                                                                         
+Epoch 002 | nat_acc=0.9512 nat_loss=0.1640                                                                                                                         
+Epoch 003 | nat_acc=0.9546 nat_loss=0.1466                                                                                                                         
+Epoch 004 | nat_acc=0.9616 nat_loss=0.1334                                                                                                                         
+Epoch 005 | nat_acc=0.9635 nat_loss=0.1273                                                                                                                         
+Epoch 006 | nat_acc=0.9613 nat_loss=0.1258                                                                                                                         
+Epoch 007 | nat_acc=0.9664 nat_loss=0.1166                                                                                                                         
+Epoch 008 | nat_acc=0.9670 nat_loss=0.1171                                                                                                                         
+Epoch 009 | nat_acc=0.9666 nat_loss=0.1171                                                                                                                         
+Epoch 010 | nat_acc=0.9648 nat_loss=0.1195                                                                                                                         
+==> Done. 
+Standard accuracy: 0.9648 
+Robust accuracy (PGD @ eps=0.1): 0.7114
+Total training time: 40.14 seconds
+
+[models/mnist_ibp.pth] Verified Accuracy over eps:
+  eps=0.010: 98.53%  (verified 7770/7886 eligible)
+  eps=0.020: 96.59%  (verified 7617/7886 eligible)
+  eps=0.030: 93.82%  (verified 7399/7886 eligible)
+  eps=0.040: 90.25%  (verified 7117/7886 eligible)
+  eps=0.050: 85.52%  (verified 6744/7886 eligible)
+  eps=0.060: 79.31%  (verified 6254/7886 eligible)
+  eps=0.070: 70.45%  (verified 5556/7886 eligible)
+  eps=0.080: 58.76%  (verified 4634/7886 eligible)
+  eps=0.090: 44.86%  (verified 3538/7886 eligible)
+  eps=0.100: 31.80%  (verified 2508/7886 eligible)
